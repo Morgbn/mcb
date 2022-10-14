@@ -128,9 +128,11 @@ export default class MBot {
       for (let i = 0; i < o.models.length; i++) {
         const { entity, type, val } = o.models[i]
         iByEntity[entity] = (iByEntity[entity] ?? -1) + 1
+        if (type !== 'regex') {
         data[entity] = type
-        data[`${entity}_val`] = val
         data[`${entity}${iByEntity[entity]}`] = type
+        }
+        data[`${entity}_val`] = val
         data[`${entity}${iByEntity[entity]}_val`] = val
       }
     }
