@@ -1,6 +1,5 @@
 import bench from 'nanobench'
-import Bot from './index.js'
-import { btwEntity } from './entities.js'
+import { MCB, btwEntity } from '../src/index.js'
 
 const endAnswerTravel = (cityA, cityB, d) => { // helper from intent travel4 and travel5
   const cap = c => c.charAt(0).toUpperCase() + c.slice(1)
@@ -113,7 +112,7 @@ const fullCopy = d => d.map(v => ({ intent: v.intent, utterances: [...v.utteranc
 
 bench('test', (b) => {
   b.start()
-  const bot = new Bot({ data: fullCopy(data), entities })
+  const bot = new MCB({ data: fullCopy(data), entities })
   tests.forEach(({ utter, r }) => {
     const { answer } = bot.process(utter)
     const status = answer !== r ? '❌' : '✅'

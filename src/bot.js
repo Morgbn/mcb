@@ -4,7 +4,7 @@ import { reEntity } from './entities.js'
 const funcD = '\u0007'
 const funcRe = new RegExp(`${funcD}([^${funcD}]+)${funcD}`, 'g')
 
-export default class MBot {
+export default class Bot {
   constructor (opt) {
     this.entities = this.getEntities(opt.entities || {})
     this.data = this.getData(opt.data || [])
