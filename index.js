@@ -1,11 +1,12 @@
 import { similarity } from '@nlpjs/similarity'
+import { reEntity } from './entities.js'
 
-const reD = '\u0007'
-const reM = new RegExp(`${reD}([^${reD}]+)${reD}`, 'g')
+const funcD = '\u0007'
+const funcRe = new RegExp(`${funcD}([^${funcD}]+)${funcD}`, 'g')
 
 export default class MBot {
   constructor (opt) {
-    this.entities = opt.entities || {}
+    this.entities = this.getEntities(opt.entities || {})
     this.data = this.getData(opt.data || [])
     this.dataByUtter = this.data.reduce((o, el) => {
       el.utterances.forEach(u => {
@@ -32,13 +33,31 @@ export default class MBot {
       for (let j = 0; j < el.utterances.length; j++) {
         const derivedUtters = this.getAllDerivedUtters(el.utterances[j])
         for (let k = 0; k < derivedUtters.length; k++) {
-          derivedUtters[k].text = this.normalize(derivedUtters[k].text)
+          derivedUtters[k].normalized = this.normalize(derivedUtters[k].text)
           utters.push(derivedUtters[k])
         }
       }
       el.utterances = utters
     }
     return data
+  }
+
+  /**
+   * Pre process entities
+   * @param {Object} entities entities
+   * @returns entities
+   */
+  getEntities (entities) {
+    Object.entries(entities).forEach(([key, val]) => {
+      if (val instanceof RegExp) {
+        if (!val.flags.includes('g')) {
+          throw new Error('entities regex need g flag')
+        }
+        val = reEntity(key, val)
+      }
+      entities[key] = val
+    })
+    return entities
   }
 
   /**
@@ -57,11 +76,11 @@ export default class MBot {
       const entities = this.entities[entity]
       const space = i ? ' ' : ''
       const uLen = utters.length
-      if (entities instanceof RegExp) { // RegExp
-        token = `${reD}${entity}${reD}`
+      if (typeof entities === 'function') { // RegExp/function
+        token = `${funcD}${entity}${funcD}`
         for (let k = 0; k < uLen; k++) {
           utters[k].text += space + token
-          utters[k].models.push({ entity, type: 'regex' })
+          utters[k].models.push({ entity })
         }
       } else if (entities) { // Object
         const derived = Object.entries(entities) // get all ways to write an entity
@@ -95,7 +114,7 @@ export default class MBot {
     const possibleUtters = []
     this.data.forEach((d) => {
       if (!d.cond || d.cond(context)) {
-        d.utterances.forEach(u => possibleUtters.push(u.text))
+        d.utterances.forEach(u => possibleUtters.push(u))
       }
     })
     const { match, models } = this.bestMatch(text, possibleUtters)
@@ -131,7 +150,7 @@ export default class MBot {
       for (let i = 0; i < o.models.length; i++) {
         const { entity, type, val } = o.models[i]
         iByEntity[entity] = (iByEntity[entity] ?? -1) + 1
-        if (type !== 'regex') {
+        if (type) {
           data[entity] = type
           data[`${entity}${iByEntity[entity]}`] = type
         }
@@ -175,24 +194,28 @@ export default class MBot {
    * @returns {Object} match info
    */
   bestMatch (text, utterances, min = 10) {
-    text = this.normalize(text)
+    const normalizedTxt = this.normalize(text)
     let matches = []
-    const dataForReUtter = {}
+    const dataForFuncUtter = {}
     for (let i = 0; i < utterances.length; i++) {
-      let utter = utterances[i]
-      if (utter.includes(reD)) { // have regex(es)
-        const reNames = utter.match(reM)
-        const reExtracted = this.extractRe(text, reNames) // get matches
-        if (!reExtracted || reExtracted.length < reNames.length) { continue }
+      let { text: utter, normalized: normalizedUtter } = utterances[i]
+      if (utter.includes(funcD)) { // have function(s)
+        const funcNames = utter.match(funcRe)
+        const extractedWithFunc = funcNames
+          .reduce((acc, name) => [...acc, ...this.entities[name.slice(1, -1)](text)], [])
+          .filter((e, i, self) => i === self.findIndex(v => e.entity === v.entity && e.from === v.from && e.to === v.to)) // rm x2
+        if (extractedWithFunc.length < funcNames.length) { continue }
+        extractedWithFunc.sort((a, b) => a.from - b.from)
         const old = utter
-        // replace regex by match
-        for (let i = 0; i < reExtracted.length; i++) {
-          const { val, entity } = reExtracted[i]
-          utter = utter.replace(`${reD}${entity}${reD}`, val)
+        // replace function by match
+        for (let i = 0; i < extractedWithFunc.length; i++) {
+          const { val, entity } = extractedWithFunc[i]
+          utter = utter.replace(`${funcD}${entity}${funcD}`, val)
         }
-        dataForReUtter[utter] = { utter: old, reExtracted }
+        utter = normalizedUtter = this.normalize(utter)
+        dataForFuncUtter[normalizedUtter] = { utter: old, extractedWithFunc }
       }
-      const dist = similarity(text, utter)
+      const dist = similarity(normalizedTxt, normalizedUtter)
       if (min > dist) {
         min = dist
         matches = [utter]
@@ -205,15 +228,15 @@ export default class MBot {
     for (let i = 0; i < matches.length; i++) {
       let match = matches[i]
       let extracted = []
-      const { utter, reExtracted } = dataForReUtter[match] || {}
+      const { utter, extractedWithFunc } = dataForFuncUtter[match] || {}
       if (utter) {
         match = utter
-        extracted = reExtracted
+        extracted = extractedWithFunc
       }
       const { models } = this.dataByUtter[match]
       if (!models.length) { return { match } }
-      const otherModels = models.filter(m => m.type !== 'regex')
-      extracted = [...extracted, ...this.extractModels(text, otherModels)]
+      const otherModels = models.filter(m => m.type)
+      extracted = [...extracted, ...this.extractModels(normalizedTxt, otherModels)]
       extracted = this.correctExtracted(extracted, models)
       if (extracted) {
         return { match, models: extracted }
@@ -252,35 +275,6 @@ export default class MBot {
       }
     }
     return r
-  }
-
-  /**
-   * Find regex models/entities in utterance
-   * @param {String} txt utterance
-   * @param {Array} reNames list of regex names
-   * @returns {Array} list of models found
-   */
-  extractRe (txt, reNames) {
-    let r = []
-    let match
-    reNames = [...new Set(reNames)]
-    for (let i = 0; i < reNames.length; i++) {
-      const entity = reNames[i].slice(1, -1)
-      const re = this.entities[entity]
-      if (!re.flags.includes('g')) {
-        throw new Error('entities regex need g flag')
-      }
-      re.lastIndex = 0 // reset lastIndex
-      if (!re) { return null }
-      const r2 = []
-      while ((match = re.exec(txt)) !== null) {
-        const val = match[0]
-        r2.push({ entity, type: 'regex', val, from: match.index, to: match.index + val.length - 1, dist: 0 })
-      }
-      if (!r2.length) { return null }
-      r = [...r, ...r2]
-    }
-    return r.sort((a, b) => a.from - b.from)
   }
 
   /**
