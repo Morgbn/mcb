@@ -1,0 +1,31 @@
+{
+  "name": "mcb",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "nodemon test.js"
+  },
+  "keywords": [
+    "chatbot",
+    "bot",
+    "bots",
+    "browser",
+    "conversational-ai"
+  ],
+  "author": "morgbn",
+  "license": "MIT",
+  "devDependencies": {
+    "eslint": "^8.25.0",
+    "eslint-config-standard": "^17.0.0",
+    "eslint-plugin-import": "^2.26.0",
+    "eslint-plugin-n": "^15.3.0",
+    "eslint-plugin-promise": "^6.0.1",
+    "nanobench": "^3.0.0",
+    "nodemon": "^2.0.20"
+  },
+  "dependencies": {
+    "@nlpjs/similarity": "^4.22.7"
+  }
+}
