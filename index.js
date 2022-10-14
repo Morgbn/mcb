@@ -17,6 +17,7 @@ export default class MBot {
       return o
     }, {})
     this.steps = []
+    this.history = {}
   }
 
   /**
@@ -98,21 +99,23 @@ export default class MBot {
       }
     })
     const { match, models } = this.bestMatch(text, possibleUtters)
-    if (!match) { return {} }
+    if (!match) { return { answer: null } }
     const { answers, intent } = this.dataByUtter[match]
     context = this.getContext({ answers, intent, models })
     this.steps.push(intent)
+    this.pushToHistory(context)
+
     const okAnswers = answers.filter(a => !a.cond || a.cond(context))
     const nAnswers = okAnswers.length || 0
     const i = nAnswers > 1 ? Math.floor(Math.random() * nAnswers) : 0
     const txtAnswer = okAnswers[i]
-    const answer = typeof txtAnswer === 'string'
+    const answer = (typeof txtAnswer === 'string'
       ? txtAnswer
       : typeof txtAnswer === 'function'
         ? txtAnswer(context)
         : typeof txtAnswer.answer === 'function'
           ? txtAnswer.answer(context)
-          : txtAnswer.answer
+          : txtAnswer.answer) || null
     return { ...context, answer }
   }
 
@@ -129,8 +132,8 @@ export default class MBot {
         const { entity, type, val } = o.models[i]
         iByEntity[entity] = (iByEntity[entity] ?? -1) + 1
         if (type !== 'regex') {
-        data[entity] = type
-        data[`${entity}${iByEntity[entity]}`] = type
+          data[entity] = type
+          data[`${entity}${iByEntity[entity]}`] = type
         }
         data[`${entity}_val`] = val
         data[`${entity}${iByEntity[entity]}_val`] = val
@@ -139,9 +142,18 @@ export default class MBot {
     return {
       ...o,
       ...data,
+      history: { ...this.history },
       steps: [...this.steps],
       lastStep: this.steps.slice(-1)[0]
     }
+  }
+
+  /**
+   * Keep a ref to context for each intent
+   * @param {Object} context
+   */
+  pushToHistory ({ answers, history, intent, models, steps, ...data }) {
+    this.history[intent] = data // { lastStep, @model: type, @model_val: val ... }
   }
 
   /**
