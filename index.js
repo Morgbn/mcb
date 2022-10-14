@@ -255,6 +255,9 @@ export default class MBot {
     for (let i = 0; i < reNames.length; i++) {
       const entity = reNames[i].slice(1, -1)
       const re = this.entities[entity]
+      if (!re.flags.includes('g')) {
+        throw new Error('entities regex need g flag')
+      }
       re.lastIndex = 0 // reset lastIndex
       if (!re) { return null }
       const r2 = []
