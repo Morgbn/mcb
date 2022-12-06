@@ -120,12 +120,3 @@ bench('test', (b) => {
   })
   b.end()
 })
-
-// bench('test 20.000 times', (b) => {
-//   b.start()
-//   for (let i = 0; i < 20000; i++) {
-//     const bot = new Bot({ data: fullCopy(data), entities })
-//     tests.forEach(({ utter }) => bot.process(utter))
-//   }
-//   b.end()
-// })

@@ -1,4 +1,4 @@
-import { similarity } from '@nlpjs/similarity'
+import { similarity } from './similarity.js'
 import { reEntity } from './entities.js'
 
 const funcD = '\u0007'
