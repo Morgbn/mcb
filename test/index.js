@@ -111,12 +111,15 @@ const tests = [
 const fullCopy = d => d.map(v => ({ intent: v.intent, utterances: [...v.utterances], answers: [...v.answers], cond: v.cond }))
 
 bench('test', (b) => {
+  let error = false
   b.start()
   const bot = new MCB({ data: fullCopy(data), entities })
   tests.forEach(({ utter, r }) => {
     const { answer } = bot.process(utter)
     const status = answer !== r ? '❌' : '✅'
+    if (!error && answer !== r) { error = true }
     console.log(`${status} "${utter}" => "${answer}"`)
   })
   b.end()
+  if (error) { process.exit(1) }
 })
