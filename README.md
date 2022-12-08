@@ -40,7 +40,7 @@ console.log(bot.process('goodbye for now').answer)
 Example code for slot filling:
 
 ```js
-import { MCB } from 'mcb'
+import { MCB, btwEntity } from 'mcb'
 
 const data = [{
   intent: 'travel.start',
@@ -59,12 +59,12 @@ const data = [{
 }, {
   intent: 'travelDate',
   utterances: ['tomorrow', 'the @date'],
-  answers: [d => endAnswerTravel(d.history.travelTo.city_val, d.history.travelFrom.city_val, d.date_val)],
+  answers: [d => `You want to travel from ${d.history.travelTo.city_val} to ${d.history.travelFrom.city_val} the ${new Date(d.date_val).toLocaleDateString('en-US')}`],
   cond: d => d.lastStep === 'travelFrom'
 }, {
   intent: 'travalOneShot',
   utterances: ['I want to travel from @fromCity to @toCity at @date', 'I want to travel to @toCity from @fromCity at @date'],
-  answers: [d => endAnswerTravel(d.fromCity_val, d.toCity_val, d.date_val)]
+  answers: [d => `You want to travel from ${d.fromCity_val} to ${d.toCity_val} the ${new Date(d.date_val).toLocaleDateString('en-US')}`]
 }]
 
 const entities = {
