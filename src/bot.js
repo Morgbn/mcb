@@ -4,10 +4,13 @@ import { reEntity } from './entities.js'
 const funcD = '\u0007'
 const funcRe = new RegExp(`${funcD}([^${funcD}]+)${funcD}`, 'g')
 
+const fullCopy = d => d.map(v => ({ intent: v.intent, utterances: [...v.utterances], answers: [...v.answers], cond: v.cond }))
+
 export default class Bot {
   constructor (opt) {
     this.entities = this.getEntities(opt.entities || {})
-    this.data = this.getData(opt.data || [])
+    const data = fullCopy(opt.data || []) // copy refs
+    this.data = this.getData(data)
     this.dataByUtter = this.data.reduce((o, el) => {
       el.utterances.forEach(u => {
         const d = { ...el, ...u }
