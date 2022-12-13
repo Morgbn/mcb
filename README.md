@@ -3,6 +3,7 @@
 [![size](https://img.shields.io/bundlephobia/min/mcb?style=for-the-badge)](https://bundlephobia.com/result?p=mcb)
 [![beta](https://img.shields.io/badge/BETA-test-red?style=for-the-badge)](#)
 [![usejs](https://img.shields.io/badge/USES-JS-yellow?style=for-the-badge)](#)
+[![tested with jest](https://img.shields.io/badge/tested_with-jest-99424f.svg?logo=jest&style=for-the-badge)](https://github.com/facebook/jest)
 
 ---
 
@@ -89,3 +90,7 @@ console.log(bot.process('I want to travel from London to Barcelona the 12/15/202
 console.log(bot.process('I want to travel to Barcelona from London the 12/15/2022').answer)
 // => You want to travel from London to Barcelona the 12/15/2022
 ```
+
+### Alternatives / inspirations
+- [NLP.JS](https://github.com/axa-group/nlp.js)
+- [Rasa](https://github.com/RasaHQ/rasa)
